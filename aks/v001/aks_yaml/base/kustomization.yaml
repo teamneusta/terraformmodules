@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - check-mk-proxy.yaml
+  - check-mk-rbac.yaml
+  - dashboard-rbac.yaml
+  - logreader-rbac.yaml
+  - node-sysctls.yaml
+  - systemd-cgroup-gc.yaml
+  - oms-agent-configuration.yaml

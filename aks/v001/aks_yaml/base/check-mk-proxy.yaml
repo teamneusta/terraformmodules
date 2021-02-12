@@ -1,0 +1,85 @@
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: check-mk-proxy
+  namespace: check-mk
+  annotations:
+    service.beta.kubernetes.io/azure-dns-label-name : "$(CHECKMKPROXY_DNS_LABEL)"
+spec:
+  selector:
+    k8s-app: check-mk-proxy
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+      nodePort: 32500
+      name: http
+    - protocol: TCP
+      port: 5001
+      targetPort: 5001
+      nodePort: 32501
+      name: https
+  type: LoadBalancer
+  loadBalancerSourceRanges:
+  - 82.198.204.89/32
+  - 82.198.223.57/32
+  - 31.209.82.2/32
+  - 185.55.118.250/32
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: check-mk-proxy
+  namespace: check-mk
+  labels:
+    k8s-app: check-mk-proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: check-mk-proxy
+  template:
+    metadata:
+      labels:
+        k8s-app: check-mk-proxy
+        name: check-mk-proxy
+    spec:
+      nodeSelector:
+        agentpool: default
+      hostname: checkmkproxy
+      serviceAccountName: check-mk
+      terminationGracePeriodSeconds: 60
+      containers:
+      - name: checkmkproxy
+        image: checkmkproxy
+        imagePullPolicy: Always
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: 1
+          requests:
+            memory: "64Mi"
+            cpu: 0
+        livenessProbe:
+          httpGet:
+            path: /healthz
+            port: 5001
+            scheme: HTTPS
+          initialDelaySeconds: 60
+          periodSeconds: 60
+        readinessProbe:
+          httpGet:
+            path: /healthz
+            port: 5001
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          periodSeconds: 5
+        env:
+        - name: ASPNETCORE_LOGGING__CONSOLE__DISABLECOLORS
+          value: "true"
+        ports:
+        - name: http
+          containerPort: 5000
+        - name: https
+          containerPort: 5001
